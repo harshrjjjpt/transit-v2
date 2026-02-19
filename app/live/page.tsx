@@ -10,15 +10,19 @@ import { STATION_TO_GTFS_STOP_ID } from '@/lib/gtfs-stop-map'
 function LiveStatusBadge({ status, lastUpdated, secondsUntilRefresh, onRefresh }: {
   status: FetchStatus; lastUpdated: Date | null; secondsUntilRefresh: number; onRefresh: () => void
 }) {
-  const cfg: Record<FetchStatus, { color: string; label: string; pulse: boolean }> = {
-    idle:        { color: '#666',    label: 'Connecting…', pulse: false },
-    loading:     { color: '#f5c842', label: 'Fetching…',   pulse: true  },
-    live:        { color: '#4ade80', label: 'Live',        pulse: true  },
-    stale:       { color: '#fb923c', label: 'Stale',       pulse: false },
-    error:       { color: '#f87171', label: 'Error',       pulse: false },
-    unavailable: { color: '#666',    label: 'Offline',     pulse: false },
-  }[status]
+ const CONFIG: Record<
+  FetchStatus,
+  { color: string; label: string; pulse: boolean }
+> = {
+  idle:        { color: '#666',    label: 'Connecting…', pulse: false },
+  loading:     { color: '#f5c842', label: 'Fetching…',   pulse: true  },
+  live:        { color: '#4ade80', label: 'Live',        pulse: true  },
+  stale:       { color: '#fb923c', label: 'Stale',       pulse: false },
+  error:       { color: '#f87171', label: 'Error',       pulse: false },
+  unavailable: { color: '#666',    label: 'Offline',     pulse: false },
+}
 
+const cfg = CONFIG[status]
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5"
