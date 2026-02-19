@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server'
 import { decodeGtfsRtFeed } from '@/lib/gtfs-rt-decoder'
 
 // ── In-memory cache — avoids hammering the GTFS-RT endpoint ────────────────
-let cache: { data: unknown; fetchedAt: number } | null = null
+type ShapedGtfsResponse = ReturnType<typeof shapeFeed>
+
+let cache: { data: ShapedGtfsResponse; fetchedAt: number } | null = null
+
 const CACHE_TTL_MS = 15_000 // 15 seconds — GTFS-RT updates ~every 15-30s
 
 // ── Fetch and decode the live feed ─────────────────────────────────────────
