@@ -17,7 +17,9 @@ async function fetchLiveFeed() {
     throw new Error('GTFS_RT_API_KEY and GTFS_RT_FEED_URL must be set in environment variables.')
   }
 
-  const res = await fetch(feedUrl, {
+  const urlWithKey = buildFeedUrl(feedUrl, apiKey)
+
+  const res = await fetch(urlWithKey, {
     headers: {
       'x-api-key': apiKey,
       Accept: 'application/octet-stream',
@@ -32,6 +34,21 @@ async function fetchLiveFeed() {
   const buffer = await res.arrayBuffer()
   const feed = decodeGtfsRtFeed(new Uint8Array(buffer))
   return feed
+}
+
+function buildFeedUrl(feedUrl: string, apiKey: string) {
+  if (feedUrl.includes('{API_KEY}')) {
+    return feedUrl.replaceAll('{API_KEY}', encodeURIComponent(apiKey))
+  }
+
+  const url = new URL(feedUrl)
+
+  // Common provider format: ...?key=
+  if (url.searchParams.get('key') !== apiKey) {
+    url.searchParams.set('key', apiKey)
+  }
+
+  return url.toString()
 }
 
 // ── Shape the raw feed into a clean API response ───────────────────────────
