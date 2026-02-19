@@ -1,0 +1,51 @@
+{
+  "name": "MetroFlow — Delhi Transit",
+  "short_name": "MetroFlow",
+  "description": "Premium real-time Delhi Metro companion. Live arrivals, route planning, fare calculator.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "orientation": "portrait-primary",
+  "categories": ["travel", "navigation", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Live Board",
+      "short_name": "Live",
+      "description": "Check live train arrivals",
+      "url": "/live",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Route Planner",
+      "short_name": "Route",
+      "description": "Plan your journey",
+      "url": "/route",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Fare Calculator",
+      "short_name": "Fare",
+      "description": "Calculate fare",
+      "url": "/fare",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false,
+  "scope": "/"
+}

@@ -1,0 +1,276 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap');
+
+/* ═══════════════════════════════════════════════
+   DARK THEME (default)
+═══════════════════════════════════════════════ */
+:root,
+[data-theme="dark"] {
+  --bg:           #080808;
+  --bg-secondary: #0d0d0d;
+  --surface:      #111111;
+  --surface2:     #171717;
+  --surface3:     #1e1e1e;
+  --border:       rgba(255,255,255,0.065);
+  --border-strong:rgba(255,255,255,0.12);
+  --text:         #f0f0f0;
+  --text-muted:   #888888;
+  --text-dim:     #444444;
+  --shadow:       0 4px 24px rgba(0,0,0,0.45);
+  --shadow-lg:    0 12px 48px rgba(0,0,0,0.6);
+  --glow-top:     rgba(255,255,255,0.025);
+  --logo-color:   #ffffff;
+  --logo-bg:      #1a1a1a;
+  --select-opt:   #1a1a1a;
+  --map-tile:     dark;
+
+  /* Accent — same in both themes */
+  --accent-green:   #4ade80;
+  --accent-blue:    #4a9eff;
+  --accent-yellow:  #f5c842;
+  --accent-red:     #f87171;
+
+  /* Delhi Metro Line Colors */
+  --line-blue:    #2196F3;
+  --line-yellow:  #FFC107;
+  --line-green:   #4CAF50;
+  --line-magenta: #E91E63;
+  --line-red:     #F44336;
+  --line-orange:  #FF9800;
+  --line-violet:  #9C27B0;
+  --line-pink:    #EC407A;
+  --line-aqua:    #00BCD4;
+  --line-gray:    #9E9E9E;
+}
+
+/* ═══════════════════════════════════════════════
+   LIGHT THEME
+═══════════════════════════════════════════════ */
+[data-theme="light"] {
+  --bg:           #f5f4f0;
+  --bg-secondary: #eeece8;
+  --surface:      #ffffff;
+  --surface2:     #f8f7f4;
+  --surface3:     #f0ede8;
+  --border:       rgba(0,0,0,0.07);
+  --border-strong:rgba(0,0,0,0.13);
+  --text:         #0f0f0f;
+  --text-muted:   #555555;
+  --text-dim:     #aaaaaa;
+  --shadow:       0 4px 24px rgba(0,0,0,0.07);
+  --shadow-lg:    0 12px 48px rgba(0,0,0,0.12);
+  --glow-top:     rgba(0,0,0,0.04);
+  --logo-color:   #0f0f0f;
+  --logo-bg:      #f0ede8;
+  --select-opt:   #ffffff;
+  --map-tile:     light;
+
+  --accent-green:   #16a34a;
+  --accent-blue:    #2563eb;
+  --accent-yellow:  #b45309;
+  --accent-red:     #dc2626;
+
+  /* Line colors slightly desaturated for light bg */
+  --line-blue:    #1565C0;
+  --line-yellow:  #F57F17;
+  --line-green:   #2E7D32;
+  --line-magenta: #AD1457;
+  --line-red:     #C62828;
+  --line-orange:  #E65100;
+  --line-violet:  #6A1B9A;
+  --line-pink:    #C2185B;
+  --line-aqua:    #00838F;
+  --line-gray:    #616161;
+}
+
+/* ═══════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-family: 'DM Sans', sans-serif;
+  /* Smooth theme transition */
+  transition: color-scheme 0.3s;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background-color 0.35s cubic-bezier(0.4,0,0.2,1),
+              color 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* Theme transition for all elements */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, box-shadow, opacity;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.4,0,0.2,1);
+}
+/* Exclude animations from transition override */
+.animate-ping, .anim-page, .stagger > *, .modal-enter, .card-lift {
+  transition: none;
+}
+.card-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+
+/* Grain overlay — different opacity per theme */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+[data-theme="dark"]  body::after { opacity: 0.022; }
+[data-theme="light"] body::after { opacity: 0.032; }
+body::after { opacity: 0.022; }
+
+/* Top ambient glow */
+body::before {
+  content: '';
+  position: fixed;
+  top: -20vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80vw;
+  height: 50vh;
+  background: radial-gradient(ellipse, var(--glow-top) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+h1, h2, h3, h4 { font-family: 'Syne', sans-serif; }
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+
+/* ─── Select ─── */
+select {
+  appearance: none;
+  background-color: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  width: 100%;
+}
+select:focus { outline: none; border-color: var(--border-strong); }
+select option { background-color: var(--select-opt); }
+
+/* ═══════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════ */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.anim-page {
+  animation: fadeSlideUp 0.48s cubic-bezier(0.16,1,0.3,1) both;
+}
+
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.stagger > * {
+  opacity: 0;
+  animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) both;
+}
+.stagger > *:nth-child(1)  { animation-delay: 0.04s; }
+.stagger > *:nth-child(2)  { animation-delay: 0.09s; }
+.stagger > *:nth-child(3)  { animation-delay: 0.14s; }
+.stagger > *:nth-child(4)  { animation-delay: 0.19s; }
+.stagger > *:nth-child(5)  { animation-delay: 0.24s; }
+.stagger > *:nth-child(6)  { animation-delay: 0.29s; }
+.stagger > *:nth-child(n+7){ animation-delay: 0.34s; }
+
+@keyframes ping {
+  0%   { transform: scale(1); opacity: 0.85; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+.animate-ping { animation: ping 1.5s ease-out infinite; }
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spin-slow { animation: spin-slow 3s linear infinite; }
+
+@keyframes slide-up-modal {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-enter { animation: slide-up-modal 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+
+/* Theme toggle morph */
+@keyframes toggle-morph {
+  0%   { transform: scale(1) rotate(0deg); }
+  50%  { transform: scale(0.8) rotate(180deg); }
+  100% { transform: scale(1) rotate(360deg); }
+}
+.theme-toggle-spin {
+  animation: toggle-morph 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+
+/* ─── Timeline track ─── */
+.timeline-track { position: relative; }
+.timeline-track::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    var(--border-strong) 4%,
+    var(--border-strong) 96%,
+    transparent 100%
+  );
+}
+
+/* ─── Map ─── */
+.map-grid { position: relative; overflow: hidden; }
+.map-grid .line { position: absolute; height: 3px; border-radius: 999px; opacity: 0.6; }
+.map-grid .blue    { background: var(--line-blue);    width: 90%; top: 20%; left: 5%; }
+.map-grid .yellow  { background: var(--line-yellow);  width: 75%; top: 50%; left: 10%; transform: rotate(-8deg); }
+.map-grid .magenta { background: var(--line-magenta); width: 65%; top: 75%; left: 20%; transform: rotate(15deg); }
+
+/* Light theme: Leaflet map light tiles */
+[data-theme="light"] .leaflet-tile-pane { filter: none; }
+
+/* ─── Premium hover lift ─── */
+.card-lift { transition: transform 0.2s ease, box-shadow 0.2s ease !important; }
+.card-lift:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+/* ─── Separator ─── */
+.sep { width: 1px; background: var(--border); }
+
+/* ─── Leaflet overrides for dark map ─── */
+.leaflet-container {
+  background: var(--surface2) !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+.leaflet-control-attribution {
+  background: var(--surface) !important;
+  color: var(--text-dim) !important;
+  font-size: 9px !important;
+}
+.leaflet-control-attribution a { color: var(--text-dim) !important; }
+.leaflet-control-zoom a {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+.leaflet-bar { border: 1px solid var(--border-strong) !important; }

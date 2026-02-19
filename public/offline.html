@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MetroFlow — Offline</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg: #080808; --surface: #111; --border: rgba(255,255,255,0.07); --text: #f0f0f0; --text-dim: #444; }
+    [data-theme="light"] { --bg: #f5f4f0; --surface: #fff; --border: rgba(0,0,0,0.08); --text: #111; --text-dim: #aaa; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center;
+           min-height: 100vh; padding: 24px; text-align: center; }
+
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 40px 32px; max-width: 360px; width: 100%;
+    }
+    .icon { font-size: 52px; margin-bottom: 20px; display: block; }
+    h1 { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800;
+         letter-spacing: -0.04em; margin-bottom: 8px; }
+    p { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 24px; }
+    .btn {
+      display: block; width: 100%; padding: 12px; border-radius: 12px;
+      background: var(--text); color: var(--bg); font-family: 'Syne', sans-serif;
+      font-size: 14px; font-weight: 700; border: none; cursor: pointer;
+      letter-spacing: -0.01em; margin-bottom: 10px; text-decoration: none;
+    }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .tips { margin-top: 28px; text-align: left; }
+    .tips h2 { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+               text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim);
+               margin-bottom: 10px; }
+    .tip { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0;
+           border-top: 1px solid var(--border); font-size: 12px; color: var(--text-dim); }
+    .tip span:first-child { flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+    .status { margin-top: 20px; font-size: 10px; color: var(--text-dim); }
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+           background: #f87171; margin-right: 6px; vertical-align: middle; }
+  </style>
+  <script>
+    // Apply saved theme immediately
+    try {
+      const t = localStorage.getItem('metroflow:theme')
+      if (t) document.documentElement.setAttribute('data-theme', t)
+    } catch(e) {}
+  </script>
+</head>
+<body>
+  <div class="card">
+    <span class="icon">🚇</span>
+    <h1>You're Offline</h1>
+    <p>MetroFlow couldn't reach the network. Some features need connectivity — but we've cached what we can for you.</p>
+
+    <button class="btn" onclick="window.location.reload()">Try Again</button>
+    <a class="btn btn-outline" href="/">Open Cached App</a>
+
+    <div class="tips">
+      <h2>What works offline</h2>
+      <div class="tip">
+        <span>✅</span>
+        <span>Route planning with static schedules</span>
+      </div>
+      <div class="tip">
+        <span>✅</span>
+        <span>Fare calculator & station lookup</span>
+      </div>
+      <div class="tip">
+        <span>✅</span>
+        <span>Previously loaded metro map</span>
+      </div>
+      <div class="tip">
+        <span>⚠️</span>
+        <span>Live arrivals show last cached data</span>
+      </div>
+      <div class="tip">
+        <span>❌</span>
+        <span>Real-time train positions unavailable</span>
+      </div>
+    </div>
+
+    <p class="status">
+      <span class="dot"></span>No network connection detected
+    </p>
+  </div>
+
+  <script>
+    // Auto-reload when network comes back
+    window.addEventListener('online', () => window.location.reload())
+  </script>
+</body>
+</html>
