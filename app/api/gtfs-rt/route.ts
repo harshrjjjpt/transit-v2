@@ -17,21 +17,76 @@ async function fetchLiveFeed() {
     throw new Error('GTFS_RT_API_KEY and GTFS_RT_FEED_URL must be set in environment variables.')
   }
 
-  const res = await fetch(feedUrl, {
-    headers: {
-      'x-api-key': apiKey,
-      Accept: 'application/octet-stream',
-    },
-    next: { revalidate: 0 }, // never use Next.js cache — we do our own
-  })
+  const candidateUrls = buildFeedUrlCandidates(feedUrl, apiKey)
+  const errors: string[] = []
 
-  if (!res.ok) {
-    throw new Error(`GTFS-RT fetch failed: ${res.status} ${res.statusText}`)
+  for (const urlWithKey of candidateUrls) {
+    const res = await fetch(urlWithKey, {
+      headers: {
+        'x-api-key': apiKey,
+        Accept: 'application/octet-stream',
+      },
+      next: { revalidate: 0 }, // never use Next.js cache — we do our own
+    })
+
+    if (res.ok) {
+      const buffer = await res.arrayBuffer()
+      const feed = decodeGtfsRtFeed(new Uint8Array(buffer))
+      return feed
+    }
+
+    errors.push(`${res.status} ${res.statusText} @ ${urlWithKey}`)
+
+    // Only try fallbacks for not found paths. For auth/rate-limit/etc, fail fast.
+    if (res.status !== 404) {
+      break
+    }
   }
 
-  const buffer = await res.arrayBuffer()
-  const feed = decodeGtfsRtFeed(new Uint8Array(buffer))
-  return feed
+  throw new Error(`GTFS-RT fetch failed: ${errors.join(' | ')}`)
+}
+
+function buildFeedUrlCandidates(feedUrl: string, apiKey: string) {
+  const candidates = new Set<string>()
+
+  // 1) URL exactly as provided (with key injected)
+  candidates.add(buildFeedUrl(feedUrl, apiKey))
+
+  // 2) Correct common legacy path names from older docs/code snippets
+  candidates.add(buildFeedUrl(rewriteLegacyFeedPath(feedUrl), apiKey))
+
+  // 3) If user provided only /api/realtime base path, default to VehiclePositions
+  const realtimeBase = /^https?:\/\/[^/]+\/api\/realtime\/?$/i
+  if (realtimeBase.test(feedUrl)) {
+    candidates.add(buildFeedUrl(`${feedUrl.replace(/\/?$/, '')}/VehiclePositions.pb`, apiKey))
+  }
+
+  return [...candidates]
+}
+
+function rewriteLegacyFeedPath(feedUrl: string) {
+  return feedUrl
+    .replace(/VehiclePositionFeed\b/i, 'VehiclePositions.pb')
+    .replace(/VehiclePosition\b/i, 'VehiclePositions.pb')
+    .replace(/TripUpdateFeed\b/i, 'TripUpdates.pb')
+    .replace(/TripUpdate\b/i, 'TripUpdates.pb')
+    .replace(/AlertFeed\b/i, 'Alerts.pb')
+    .replace(/Alert\b/i, 'Alerts.pb')
+}
+
+function buildFeedUrl(feedUrl: string, apiKey: string) {
+  if (feedUrl.includes('{API_KEY}')) {
+    return feedUrl.replaceAll('{API_KEY}', encodeURIComponent(apiKey))
+  }
+
+  const url = new URL(feedUrl)
+
+  // Common provider format: ...?key=
+  if (url.searchParams.get('key') !== apiKey) {
+    url.searchParams.set('key', apiKey)
+  }
+
+  return url.toString()
 }
 
 // ── Shape the raw feed into a clean API response ───────────────────────────
