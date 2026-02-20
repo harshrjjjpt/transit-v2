@@ -4,6 +4,7 @@ import { TransitProvider } from '@/components/transit-context'
 import { ThemeProvider } from '@/components/theme-context'
 import AppShell from '@/components/app-shell'
 import { ServiceWorkerRegistration, PwaInstallBanner, OfflineBar } from '@/components/pwa'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 export const metadata: Metadata = {
   title: 'MetroFlow — Delhi Transit',
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </TransitProvider>
         </ThemeProvider>
         <ServiceWorkerRegistration />
+        <SpeedInsights />
       </body>
     </html>
   )
