@@ -14,9 +14,15 @@ declare global {
 export default function BubbleRouteMap({
   stationIds,
   playerStationId,
+  activeSegmentIndex,
+  activeSegmentRatio,
+  distanceToNextMeters,
 }: {
   stationIds: string[]
   playerStationId?: string
+  activeSegmentIndex?: number
+  activeSegmentRatio?: number
+  distanceToNextMeters?: number
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const [d3Ready, setD3Ready] = useState(false)
@@ -85,14 +91,42 @@ export default function BubbleRouteMap({
 
     // ── Progress overlay (traveled) ──
     const playerIndex = playerStationId ? stations.findIndex((s: any) => s.id === playerStationId) : -1
+    const hasActiveSegment = typeof activeSegmentIndex === 'number'
+      && activeSegmentIndex >= 0
+      && activeSegmentIndex < stations.length - 1
+      && typeof activeSegmentRatio === 'number'
+
+    const playerX = hasActiveSegment
+      ? (x(stations[activeSegmentIndex].id) + ((x(stations[activeSegmentIndex + 1].id) - x(stations[activeSegmentIndex].id) ) * Math.max(0, Math.min(1, activeSegmentRatio))))
+      : (playerIndex >= 0 ? x(stations[playerIndex].id) : undefined)
+
     if (playerIndex > 0) {
       svg.append('line')
         .attr('x1', x(stations[0].id)).attr('y1', CY)
-        .attr('x2', x(stations[playerIndex].id)).attr('y2', CY)
+        .attr('x2', playerX).attr('y2', CY)
         .attr('stroke', '#4ade80')
         .attr('stroke-width', 4)
         .attr('stroke-linecap', 'round')
         .attr('opacity', 0.9)
+    }
+
+    if (playerX !== undefined) {
+      const bubble = svg.append('g').attr('transform', `translate(${playerX}, ${CY - 34})`)
+      bubble.append('rect')
+        .attr('x', -56)
+        .attr('y', -18)
+        .attr('width', 112)
+        .attr('height', 22)
+        .attr('rx', 11)
+        .attr('fill', '#4ade80')
+        .attr('opacity', 0.15)
+      bubble.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('y', -3)
+        .attr('font-size', 9)
+        .attr('font-weight', 700)
+        .attr('fill', '#4ade80')
+        .text(typeof distanceToNextMeters === 'number' ? `${distanceToNextMeters}m to next` : 'Tracking…')
     }
 
     // ── Station nodes ──
@@ -192,7 +226,7 @@ export default function BubbleRouteMap({
       g.append('line').attr('x1', 0).attr('y1', 0).attr('x2', 16).attr('y2', 0).attr('stroke', getLineHexColor(line)).attr('stroke-width', 3).attr('stroke-linecap', 'round')
       g.append('text').attr('x', 20).attr('y', 4).attr('font-size', 9).attr('fill', document.documentElement.getAttribute('data-theme') === 'light' ? '#888' : '#666').text(line)
     })
-  }, [d3Ready, stationIds, playerStationId])
+  }, [d3Ready, stationIds, playerStationId, activeSegmentIndex, activeSegmentRatio, distanceToNextMeters])
 
   return (
     <>

@@ -7,6 +7,12 @@ import { Card } from '@/components/ui'
 import { computeDistanceKm, computeFare, getStationsBetweenOnLine, haversine, stationById, stationsByIds } from '@/lib/utils'
 
 type Coordinates = { lat: number; lng: number }
+type RouteProgress = {
+  stationIndex: number
+  segmentIndex: number
+  segmentRatio: number
+  distanceToNextMeters: number
+}
 
 type SignalMode = 'gps' | 'predicted' | 'stale'
 
@@ -16,6 +22,33 @@ const GPS_STALE_AFTER_MS = 18000
 const MAX_PREDICTION_WINDOW_MS = 4 * 60 * 1000
 const TRAIN_SPEED_KM_PER_HOUR = 32
 const STATION_DWELL_MS = 22000
+const STATION_SWITCH_BUFFER_KM = 0.1
+
+function projectPointOnSegment(point: Coordinates, start: Coordinates, end: Coordinates) {
+  const ax = start.lng
+  const ay = start.lat
+  const bx = end.lng
+  const by = end.lat
+  const px = point.lng
+  const py = point.lat
+
+  const abx = bx - ax
+  const aby = by - ay
+  const abLenSq = (abx * abx) + (aby * aby)
+  if (abLenSq === 0) {
+    return { ratio: 0, lat: start.lat, lng: start.lng }
+  }
+
+  const apx = px - ax
+  const apy = py - ay
+  const ratio = Math.max(0, Math.min(1, ((apx * abx) + (apy * aby)) / abLenSq))
+
+  return {
+    ratio,
+    lat: ay + (aby * ratio),
+    lng: ax + (abx * ratio),
+  }
+}
 
 export default function RouteResultPage() {
   const { selectedSource, selectedDestination, selectedRoute, gps, setGpsData } = useTransit()
@@ -30,6 +63,7 @@ export default function RouteResultPage() {
   const lastAcceptedGpsRef = useRef<{ lat: number; lng: number; ts: number } | null>(null)
   const speedRef = useRef(0)
   const predictionStartRef = useRef<number | null>(null)
+  const stableStationIndexRef = useRef(0)
 
   const source = stationById(selectedSource)
   const destination = stationById(selectedDestination)
@@ -45,12 +79,70 @@ export default function RouteResultPage() {
 
   const effectiveGps = predictedGps ?? gps
 
-  const playerStationId = useMemo(() => {
+  const routeMetrics = useMemo(() => {
+    const cumulativeKm: number[] = [0]
+    for (let i = 0; i < routeStations.length - 1; i += 1) {
+      const segKm = haversine(routeStations[i].lat, routeStations[i].lng, routeStations[i + 1].lat, routeStations[i + 1].lng)
+      cumulativeKm.push(cumulativeKm[i] + segKm)
+    }
+
+    return {
+      cumulativeKm,
+      totalKm: cumulativeKm[cumulativeKm.length - 1] ?? 0,
+    }
+  }, [routeStations])
+
+  const getRouteProgress = (coords: Coordinates): RouteProgress => {
+    if (routeStations.length <= 1) {
+      return { stationIndex: 0, segmentIndex: 0, segmentRatio: 0, distanceToNextMeters: 0 }
+    }
+
+    let bestSegmentIndex = 0
+    let bestSegmentRatio = 0
+    let bestDistanceKm = Number.POSITIVE_INFINITY
+
+    for (let i = 0; i < routeStations.length - 1; i += 1) {
+      const start = routeStations[i]
+      const end = routeStations[i + 1]
+      const projection = projectPointOnSegment(coords, start, end)
+      const distanceToSegmentKm = haversine(coords.lat, coords.lng, projection.lat, projection.lng)
+
+      if (distanceToSegmentKm < bestDistanceKm) {
+        bestDistanceKm = distanceToSegmentKm
+        bestSegmentIndex = i
+        bestSegmentRatio = projection.ratio
+      }
+    }
+
+    const segmentStartKm = routeMetrics.cumulativeKm[bestSegmentIndex] ?? 0
+    const segmentEndKm = routeMetrics.cumulativeKm[bestSegmentIndex + 1] ?? segmentStartKm
+    const progressKm = segmentStartKm + ((segmentEndKm - segmentStartKm) * bestSegmentRatio)
+
+    const nextSwitchKm = Math.max(segmentStartKm, segmentEndKm - STATION_SWITCH_BUFFER_KM)
+    const stationIndex = progressKm >= nextSwitchKm ? bestSegmentIndex + 1 : bestSegmentIndex
+
+    const distanceToNextMeters = Math.max(0, Math.round((segmentEndKm - progressKm) * 1000))
+
+    return {
+      stationIndex,
+      segmentIndex: bestSegmentIndex,
+      segmentRatio: bestSegmentRatio,
+      distanceToNextMeters,
+    }
+  }
+
+  const routeProgress = useMemo(() => {
     if (!effectiveGps) return undefined
-    return routeStations
-      .map((s) => ({ id: s.id, d: haversine(effectiveGps.lat, effectiveGps.lng, s.lat, s.lng) }))
-      .sort((a, b) => a.d - b.d)[0]?.id
-  }, [effectiveGps, routeStations])
+    return getRouteProgress(effectiveGps)
+  }, [effectiveGps, routeMetrics.cumulativeKm, routeStations])
+
+  const playerStationId = useMemo(() => {
+    if (!routeProgress) return undefined
+
+    const progressedIndex = Math.max(routeProgress.stationIndex, stableStationIndexRef.current)
+    stableStationIndexRef.current = progressedIndex
+    return routeStationIds[progressedIndex]
+  }, [routeProgress, routeStationIds])
 
   useEffect(() => {
     notifiedStationsRef.current = new Set()
@@ -61,6 +153,7 @@ export default function RouteResultPage() {
     predictionStartRef.current = null
     speedRef.current = 0
     lastAcceptedGpsRef.current = null
+    stableStationIndexRef.current = 0
   }, [routeStationIds])
 
   useEffect(() => {
@@ -93,23 +186,6 @@ export default function RouteResultPage() {
   useEffect(() => {
     if (!tracking || !navigator.geolocation) return undefined
 
-    const fallbackStationName = stationById(routeStationIds[0]).name
-
-    const findNearestRouteStationName = (lat: number, lng: number) => {
-      let nearestName = fallbackStationName
-      let nearestDistance = Number.POSITIVE_INFINITY
-
-      for (const station of routeStations) {
-        const distance = haversine(lat, lng, station.lat, station.lng)
-        if (distance < nearestDistance) {
-          nearestDistance = distance
-          nearestName = station.name
-        }
-      }
-
-      return nearestName
-    }
-
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
         const lat = position.coords.latitude
@@ -131,14 +207,17 @@ export default function RouteResultPage() {
         predictionStartRef.current = null
         setPredictedGps(null)
         setSignalMode('gps')
-        setGpsData({ lat, lng }, findNearestRouteStationName(lat, lng))
+        const progress = getRouteProgress({ lat, lng })
+        const stabilizedIndex = Math.max(progress.stationIndex, stableStationIndexRef.current)
+        stableStationIndexRef.current = stabilizedIndex
+        setGpsData({ lat, lng }, stationById(routeStationIds[stabilizedIndex]).name)
       },
       () => undefined,
       { enableHighAccuracy: false, timeout: 12000, maximumAge: 15000 },
     )
 
     return () => navigator.geolocation.clearWatch(watchId)
-  }, [tracking, routeStationIds, routeStations, setGpsData])
+  }, [tracking, routeStationIds, routeStations, setGpsData, routeMetrics.cumulativeKm])
 
   useEffect(() => {
     if (!tracking) return
@@ -296,7 +375,13 @@ export default function RouteResultPage() {
       {/* Bubble Map */}
       <div className="rounded-2xl p-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
         <p className="mb-3 text-[9px] font-semibold uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Route Map</p>
-        <BubbleRouteMap stationIds={routeStationIds} playerStationId={playerStationId} />
+        <BubbleRouteMap
+          stationIds={routeStationIds}
+          playerStationId={playerStationId}
+          activeSegmentIndex={routeProgress?.segmentIndex}
+          activeSegmentRatio={routeProgress?.segmentRatio}
+          distanceToNextMeters={routeProgress?.distanceToNextMeters}
+        />
       </div>
 
       {/* Premium Timeline */}
